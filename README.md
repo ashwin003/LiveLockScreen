@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png" width="128" height="128" alt="Live Lock Screen icon">
+  <img src="icon.png?v=2" width="128" height="128" alt="Live Lock Screen icon">
 </p>
 
 
