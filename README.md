@@ -71,4 +71,4 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## License
 
-GPL-3.0
+AGPL-3.0
