@@ -17,6 +17,16 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 - 🌫️ Blur effect with adjustable intensity and brightness
 - 🎞️ Configurable framerate (1-120 fps)
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/main-window.png" alt="Extension Preferences" width="600">
+  <br><br>
+  <img src="screenshots/lockscreen-clock.png" alt="Lock Screen with Clock" width="600">
+  <br><br>
+  <img src="screenshots/lockscreen-prompt.png" alt="Lock Screen with Password Prompt" width="600">
+</p>
+
 ## TODO
 
 - [ ] Test on GNOME 45, 46, 47
