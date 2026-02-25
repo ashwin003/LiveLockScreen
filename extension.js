@@ -98,8 +98,7 @@ export default class LockscreenExtension extends Extension {
                             Cogl.PixelFormat.RGBA_8888,
                             width,
                             height,
-                            width * 4,
-                            null
+                            width * 4
                         );
 
                         buffer.unmap(mapInfo);
