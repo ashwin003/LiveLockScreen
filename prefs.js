@@ -10,7 +10,7 @@ import Keys from "./enums.js";
 export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         window._settings = this.getSettings();
-        window.set_default_size(800, 600);
+        window.set_default_size(600, 700);
 
         let page = new Adw.PreferencesPage();
 
