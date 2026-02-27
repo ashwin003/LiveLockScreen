@@ -16,6 +16,7 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
 
         page.add(this._buildGeneralGroup(window))
         page.add(this._buildBlurGroup(window))
+        page.add(this._buildAudioGroup(window))
 
         window.add(page);
     }
@@ -96,6 +97,44 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         });
 
         return blurGroup;
+    }
+
+    _buildAudioGroup(window) {
+        let audioGroup = new Adw.PreferencesGroup({
+            title: 'Audio',
+        });
+
+        const audioSwitch = new Adw.SwitchRow({
+            title: 'Enable audio',
+        });
+        window._settings.bind(
+            Keys.AUDIO_ENABLE, audioSwitch, 
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        audioGroup.add(audioSwitch);
+
+        let volumeRow = new Adw.SpinRow({
+            title: 'Volume',
+            adjustment: new Gtk.Adjustment({
+                lower: 1,
+                upper: 100,
+                step_increment: 1,
+                value: window._settings.get_int(Keys.AUDIO_VOLUME),
+            }),
+        });
+        audioGroup.add(volumeRow);
+
+        const toggleVolumeRow = () => {
+            volumeRow.set_sensitive(audioSwitch.active);
+        };
+        toggleVolumeRow();
+
+        audioSwitch.connect('notify::active', toggleVolumeRow);
+        volumeRow.connect('notify::value', row => {
+            window._settings.set_int(Keys.AUDIO_VOLUME, row.get_value());
+        });
+
+        return audioGroup;
     }
 
     _buildPathRow(window) {

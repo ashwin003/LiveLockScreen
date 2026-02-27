@@ -23,5 +23,15 @@
             <default>true</default>
             <summary>Is background video looped</summary>
         </key>
+
+        <key name="background-audio-enable" type="b">
+            <default>false</default>
+            <summary>Is background audio enabled</summary>
+        </key>
+        <key name="background-audio-volume" type="i">
+            <range min="1" max="100" />
+            <default>100</default>
+            <summary>Background audio volume</summary>
+        </key>
     </schema>
 </schemalist>
