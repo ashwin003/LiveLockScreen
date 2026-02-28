@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="icon.png?v=2" width="128" height="128" alt="Live Lock Screen icon">
+  <img src="icon.png" width="128" height="128" alt="Live Lock Screen icon">
 </p>
 
 
@@ -16,7 +16,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 - ⏸️ Auto pause/play on suspend/wake
 - 🌌 Configurable fade-in animation
 - 🖥️ Multiple monitor support (with automatic stretching)
-- 🌫️ Blur effect with adjustable intensity and brightness
+- 🌫️ Blur effect with adjustable radius and brightness
 - 🎞️ Configurable framerate (1-120 fps)
 - 🔊 Optional audio output with volume control
 
@@ -32,14 +32,14 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## TODO
 
-- [ ] Test on GNOME 45, 46, 47
-- [ ] Different image sizing modes (cover, fit, stretch)
-- [ ] Configurable fade in effect
+- [ ] Test on GNOME 45, 46, 47 — 🚧 in progress
+- [ ] Different image sizing modes (cover, fit, stretch) — 🚧 in progress
 - [ ] Publish to extensions.gnome.org
 - [ ] ~~Per-monitor video selection~~ — not planned, single pipeline is used for performance
 
 ## Known Issues:
-- [ ] Possible audio and video desync after suspend/wake
+- Possible audio and video desync after suspend/wake
+- Performance issues and shell crashes with high-res videos (hardware dependent)
 
 ## Installation
 
