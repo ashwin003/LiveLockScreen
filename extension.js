@@ -11,6 +11,7 @@ import * as LoginManager from 'resource:///org/gnome/shell/misc/loginManager.js'
 
 import Pipeline from './core/pipeline.js';
 import Keys from "./enums.js";
+import { setImageData } from './utils/set_image_data.js';
 
 export default class LockscreenExtension extends Extension {
     /* Called when screen is locked */
@@ -127,14 +128,15 @@ export default class LockscreenExtension extends Extension {
 
     _drawImages(data, width, height) {
         this._images.forEach(image => {
-            image.set_data(
+            setImageData(
+                image,
                 this.coglContext,
                 data,
                 Cogl.PixelFormat.RGBA_8888,
                 width,
                 height,
                 width * 4
-            );
+            )
         })
     }
 
