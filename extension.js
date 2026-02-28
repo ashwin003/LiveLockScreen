@@ -6,8 +6,10 @@ import Shell from 'gi://Shell';
 import Gst from 'gi://Gst';
 import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
-import GLib from 'gi://GLib';
 
+import * as LoginManager from 'resource:///org/gnome/shell/misc/loginManager.js';
+
+import Pipeline from './core/pipeline.js';
 import Keys from "./enums.js";
 
 export default class LockscreenExtension extends Extension {
@@ -17,36 +19,40 @@ export default class LockscreenExtension extends Extension {
             return;
         }
 
-        Gst.init(null);
+        if (!Gst.is_initialized()) {
+            if (Gst.init(null)) {
+                print("Gst initialized")
+            }
+        }
 
         this._actors = [];
         this._images = [];
-        
-        this.audioPipeline = null;
-        this.videoPipeline = null;
 
-        this.pipelinesInited = false;
-
-        this.videoSink = null;
-        this.videoBus = null;
-
-        this.timeoutId = null; // Timeout IDs
         this._injectionManager = null;
         
         this.settings = this.getSettings();
 
         // If not video set, fallback to default handler
-        this.videoPath = this.settings.get_string(Keys.VIDEO_PATH)
-        if (!this.videoPath) {
+        const videoPath = this.settings.get_string(Keys.VIDEO_PATH)
+        if (!videoPath) {
             return;
         }
 
         // These settings are common for all monitors
         const loop = this.settings.get_boolean(Keys.LOOPED);
+        const fadeInDuration = this.settings.get_int(Keys.FADE_IN_DURATION);
+        const volume = this.settings.get_int(Keys.AUDIO_VOLUME) / 100
         const blurBrightness = this.settings.get_double(Keys.BLUR_BRIGHTNESS);
         const blurRadius = this.settings.get_int(Keys.BLUR_RADIUS);
         const framerate = this.settings.get_int(Keys.FRAMERATE);
-        const interval = 1000 / framerate;
+
+        this._pipeline = new Pipeline({
+            videoPath: videoPath,
+            volume: volume,
+            loop: loop,
+            framerate: framerate,
+            dataCallback: this._drawImages.bind(this)
+        })
 
         // Creating blur effect
         const themeContext = St.ThemeContext.get_for_stage(global.stage);
@@ -65,11 +71,15 @@ export default class LockscreenExtension extends Extension {
             (original) => {
                 const self = this;
                 return function(monitorIndex) {
+                    // Doing this to have the original background
+                    original.call(this, monitorIndex);
+
                     // Fetching monitor information and creating image/actor per monitor
                     const monitor = Main.layoutManager.monitors[monitorIndex];
                     const image = St.ImageContent.new_with_preferred_size(
                         monitor.width, monitor.height
                     );
+
                     const videoActor = new Clutter.Actor({
                         x: monitor.x,
                         y: monitor.y,
@@ -83,125 +93,49 @@ export default class LockscreenExtension extends Extension {
                     self._images.push(image)
 
                     // Initializing pipelines and timer here
-                    if (self.pipelinesInited === false) {
-                        self.videoPipeline = self._initVideoPipeline()
-                        // If video pipeline creation failes, fallback to default
-                        if (!self.videoPipeline) {
-                            original.call(this, monitorIndex);
-                            return
-                        }
-                        self.audioPipeline = self._initAudioPipeline()
-
-                        self.videoSink = self.videoPipeline.get_by_name('sink');
-                        self.videoBus = self.videoPipeline.get_bus()
-
-                        self.timeoutId = self._initRenderTimer(interval)
-
-                        if (loop)
-                            self._loopPipelines()
-                        
-                        // Run both pipelines (checking if audio available)
-                        self.videoPipeline.set_state(Gst.State.PLAYING)
-                        if (self.audioPipeline) 
-                            self.audioPipeline.set_state(Gst.State.PLAYING)
-
-                        self.pipelinesInited = true
+                    if (!self._pipeline.is_initialized()) {
+                        self._pipeline.init()
+                        self._pipeline.play()
                     }
 
                     Main.screenShield._dialog._backgroundGroup.add_child(videoActor);
-            }    
+                    Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(videoActor, null);
+
+                    if (fadeInDuration > 0) {
+                        videoActor.opacity = 0;
+                        videoActor.ease({
+                            opacity: 255,
+                            duration: fadeInDuration,
+                            mode: Clutter.AnimationMode.EASE_IN_QUAD,
+                        });
+                    }
+                }    
+        });
+
+        // Adding signal when system is suspended/awakened
+        this._loginManager = LoginManager.getLoginManager();
+        this._sleepId = this._loginManager.connect('prepare-for-sleep', (manager, aboutToSleep) => {
+            if (aboutToSleep) {
+                this._pipeline.pause();
+            } else {
+                this._pipeline.play()
+            }
         });
 
         Main.screenShield._dialog._updateBackgrounds();
     }
 
-    _initRenderTimer(interval) {
-        return GLib.timeout_add(GLib.PRIORITY_DEFAULT, interval, () => {
-            let sample = this.videoSink.emit('try-pull-sample', 0);
-            if (!sample) return GLib.SOURCE_CONTINUE;
-
-            let buffer = sample.get_buffer();
-            let caps = sample.get_caps();
-            let structure = caps.get_structure(0);
-            let [, width] = structure.get_int('width');
-            let [, height] = structure.get_int('height');
-
-            let [success, mapInfo] = buffer.map(Gst.MapFlags.READ);
-            if (!success) return GLib.SOURCE_CONTINUE;
-            
-            this._images.forEach(image => {
-                image.set_data(
-                    this.coglContext,
-                    mapInfo.data,
-                    Cogl.PixelFormat.RGBA_8888,
-                    width,
-                    height,
-                    width * 4
-                );
-            })
-
-            buffer.unmap(mapInfo);
-
-            // Explicitly null everything to help GC
-            mapInfo = null;
-            buffer = null;
-            caps = null;
-            structure = null;
-            sample = null;
-
-            return GLib.SOURCE_CONTINUE;
-        });
-    }
-
-    _initAudioPipeline() {
-        let enable = this.settings.get_boolean(Keys.AUDIO_ENABLE)
-        if (!enable)
-            return null;
-
-        let volume = this.settings.get_int(Keys.AUDIO_VOLUME) / 100
-
-        try {
-            let pipeline = Gst.parse_launch(
-                `filesrc location="${this.videoPath}" ! decodebin ! audioconvert ! volume volume=${volume} ! autoaudiosink`
+    _drawImages(data, width, height) {
+        this._images.forEach(image => {
+            image.set_data(
+                this.coglContext,
+                data,
+                Cogl.PixelFormat.RGBA_8888,
+                width,
+                height,
+                width * 4
             );
-            return pipeline;
-            
-        } catch(e) {
-            return null;
-        }
-    }
-
-    _initVideoPipeline() {
-        try {
-            return Gst.parse_launch(
-                `filesrc location="${this.videoPath}" ! decodebin ! videoconvert ! 
-                video/x-raw,format=RGBA ! appsink name=sink max-buffers=1 drop=true sync=true`
-            );
-        } catch(e) {
-            return null;
-        }
-    }
-
-    _loopPipelines() {
-        this.videoBus.add_watch(GLib.PRIORITY_DEFAULT, (bus, message) => {
-            // When stream reaches its end -> seek back to 0
-            if (message.type === Gst.MessageType.EOS) {
-                this.videoPipeline.seek_simple(
-                    Gst.Format.TIME,
-                    Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
-                    0
-                );
-
-                if (this.audioPipeline) {
-                    this.audioPipeline.seek_simple(
-                        Gst.Format.TIME,
-                        Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
-                        0
-                    );
-                }
-            }
-            return GLib.SOURCE_CONTINUE;
-        });
+        })
     }
 
     /* Called when screen is unlocked */
@@ -210,28 +144,13 @@ export default class LockscreenExtension extends Extension {
             this._injectionManager.clear();
             this._injectionManager = null;
         }
+
+        if (this._sleepId) {
+            this._loginManager.disconnect(this._sleepId);
+            this._sleepId = null;
+        }
         
-        if (this.timeoutId) {
-            GLib.source_remove(this.timeoutId);
-            this.timeoutId = null;
-        }
-        if (this.videoBus) {
-            this.videoBus.remove_watch();
-            this.videoBus.remove_signal_watch();
-            this.videoBus = null;
-        }
-        if (this.videoSink) {
-            this.videoSink.set_state(Gst.State.NULL);
-            this.videoSink = null;
-        }
-        if (this.videoPipeline) {
-            this.videoPipeline.set_state(Gst.State.NULL);
-            this.videoPipeline = null;
-        }
-        if (this.audioPipeline) {
-            this.audioPipeline.set_state(Gst.State.NULL);
-            this.audioPipeline = null;
-        }
+        this._pipeline.deinit();
 
         this.coglContext = null;
         this._actors.forEach(a => {
@@ -240,6 +159,5 @@ export default class LockscreenExtension extends Extension {
         });
         this._actors = [];
         this._images = [];
-        this.pipelinesInited = false;
     }
 }
