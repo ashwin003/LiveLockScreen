@@ -78,6 +78,9 @@ export default class Pipeline {
                 audioBin.add_pad(audioGhostPad);
                 pipeline.set_property('audio-sink', audioBin);
                 pipeline.set_property('volume', this._volume);
+            } else {
+                const fakeSink = Gst.ElementFactory.make('fakesink', 'audio-fake');
+                pipeline.set_property('audio-sink', fakeSink);
             }
 
             this._pipeline = pipeline;
