@@ -7,7 +7,9 @@
 
 A GNOME Shell extension that lets you set any video as your lock screen background.
 
-> ⚠️ Only tested on GNOME 48/49 so far. Should work on GNOME 45+ but not guaranteed. Try at your own risk.
+> ⚠️ Only tested on GNOME 47-49 so far. Should work on GNOME 45+ but not guaranteed. Try at your own risk.
+
+> 💡 If you experience issues, check the **Debug** section in preferences for workarounds.
 
 ## Features
 
@@ -32,13 +34,14 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## TODO
 
-- [ ] Test on GNOME 45, 46, 47 — 🚧 in progress
-- [ ] Different image sizing modes (cover, fit, stretch) — 🚧 in progress
+- [ ] Test on GNOME 45, 46 — 🚧 in progress
+- [ ] Video scaling modes (cover, fit, stretch) — 🚧 in progress
 - [ ] Publish to extensions.gnome.org
 - [ ] ~~Per-monitor video selection~~ — not planned, single pipeline is used for performance
 
 ## Known Issues
 - Possible audio and video desync after suspend/wake
+- Brief green frame at video start (enable "Skip first frame" in Debug settings to fix or switch to unsafe pipeline)
 - Performance issues and shell crashes with high-res videos (hardware dependent)
 
 ## Installation
@@ -64,7 +67,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## Requirements
 
-- GNOME Shell 48-49 (other versions untested)
+- GNOME Shell 47-49 (other versions untested)
 - GStreamer with good/bad plugins:
   ```bash
   # Fedora

@@ -17,6 +17,7 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         page.add(this._buildGeneralGroup(window))
         page.add(this._buildPlaybackGroup(window))
         page.add(this._buildEffectsGroup(window))
+        page.add(this._buildDebugGroup(window))
 
         window.add(page);
     }
@@ -140,6 +141,41 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         });
 
         return effectsGroup;
+    }
+
+    _buildDebugGroup(window) {
+        let debugGroup = new Adw.PreferencesGroup({
+            title: 'Debug',
+        });
+
+        const unsafeSwitch = new Adw.SwitchRow({
+            title: 'Unsafe pipeline',
+            subtitle: "Enable this if you experience artifacts (may cause a shell crash)"
+        });
+        window._settings.bind(
+            Keys.DEBUG_USE_UNSAFE_PIPELINE, unsafeSwitch, 
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        debugGroup.add(unsafeSwitch);
+
+        const skipFrameSwitch = new Adw.SwitchRow({
+            title: 'Skip first frame',
+            subtitle: "Enable this if there is a brief green screen at the start"
+        });
+        window._settings.bind(
+            Keys.DEBUG_SKIP_FIRST_FRAME, skipFrameSwitch, 
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        debugGroup.add(skipFrameSwitch);
+
+        // Skip first frame only relevant for safe pipeline (playbin)
+        const toggleSkipFrame = () => {
+            skipFrameSwitch.set_sensitive(!unsafeSwitch.active);
+        };
+        toggleSkipFrame();
+        unsafeSwitch.connect('notify::active', toggleSkipFrame);
+
+        return debugGroup;
     }
 
     _buildPathRow(window) {

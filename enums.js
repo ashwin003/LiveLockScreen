@@ -8,6 +8,9 @@ const Keys = {
     BLUR_BRIGHTNESS: "background-video-blur-brightness",
 
     AUDIO_VOLUME: "background-audio-volume",
+
+    DEBUG_SKIP_FIRST_FRAME: "debug-skip-frame",
+    DEBUG_USE_UNSAFE_PIPELINE: "debug-use-unsafe-pipeline",
 };
 
 export default Keys;
