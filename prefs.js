@@ -4,7 +4,7 @@ import Gtk from 'gi://Gtk';
 
 import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-import Keys from "./enums.js";
+import { Keys, ScalingMode } from "./enums.js";
 
 
 export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
@@ -28,6 +28,19 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         });
 
         generalGroup.add(this._buildPathRow(window));
+
+        const scalingRow = new Adw.ComboRow({
+            title: 'Scaling mode',
+            model: new Gtk.StringList({
+                strings: ['Stretch', 'Fit', 'Cover']
+            }),
+        });
+
+        scalingRow.set_selected(window._settings.get_int(Keys.SCALING_MODE));
+        scalingRow.connect('notify::selected', row => {
+            window._settings.set_int(Keys.SCALING_MODE, row.selected);
+        });
+        generalGroup.add(scalingRow)
 
         let volumeRow = new Adw.SpinRow({
             title: 'Volume',

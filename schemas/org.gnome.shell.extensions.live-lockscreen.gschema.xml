@@ -4,6 +4,11 @@
             <default>""</default>
             <summary>Path to background video</summary>
         </key>
+        <key name="background-video-scaling-mode" type="i">
+            <range min="0" max="2" />
+            <default>0</default>
+            <summary>Background video scaling mode</summary>
+        </key>
         <key name="background-video-blur-radius" type="i">
             <range min="0" max="100" />
             <default>0</default>

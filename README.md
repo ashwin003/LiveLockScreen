@@ -15,9 +15,11 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 - 🎬 Play any video file as the lock screen background
 - 🔁 Loop support
+- 🎨 Video scaling modes (cover, fit, stretch)
+- 🔲 Transparent video support (RGBA)
 - ⏸️ Auto pause/play on suspend/wake
 - 🌌 Configurable fade-in animation
-- 🖥️ Multiple monitor support (with automatic stretching)
+- 🖥️ Multiple monitor support
 - 🌫️ Blur effect with adjustable radius and brightness
 - 🎞️ Configurable framerate (1-120 fps)
 - 🔊 Optional audio output with volume control
@@ -33,9 +35,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 </p>
 
 ## TODO
-
-- [ ] Test on GNOME 45, 46 — 🚧 in progress
-- [ ] Video scaling modes (cover, fit, stretch) — 🚧 in progress
+- [ ] Improve performance for high-res videos
 - [ ] Publish to extensions.gnome.org
 - [ ] ~~Per-monitor video selection~~ — not planned, single pipeline is used for performance
 

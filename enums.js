@@ -1,5 +1,6 @@
-const Keys = {
+export const Keys = {
     VIDEO_PATH: "background-video-path",
+    SCALING_MODE: "background-video-scaling-mode",
     FRAMERATE: "background-video-framerate",
     LOOPED: "background-video-looped",
     FADE_IN_DURATION: "background-fade-in-duration",
@@ -13,4 +14,8 @@ const Keys = {
     DEBUG_USE_UNSAFE_PIPELINE: "debug-use-unsafe-pipeline",
 };
 
-export default Keys;
+export const ScalingMode = {
+    STRETCH: 0,
+    FIT: 1,
+    COVER: 2,
+}

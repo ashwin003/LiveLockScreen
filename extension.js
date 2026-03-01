@@ -1,19 +1,23 @@
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as LoginManager from 'resource:///org/gnome/shell/misc/loginManager.js';
+
 import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import St from 'gi://St';
-import Shell from 'gi://Shell';
 import Gst from 'gi://Gst';
+import Shell from 'gi://Shell';
 import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
-
-import * as LoginManager from 'resource:///org/gnome/shell/misc/loginManager.js';
+import GLib from 'gi://GLib';
+import GstPbutils from 'gi://GstPbutils';
 
 import Pipeline from './core/pipeline.js';
 import PipelineUnsafe from './core/pipeline_unsafe.js';
 
-import Keys from "./enums.js";
+import { Keys } from "./enums.js";
 import { setImageData } from './utils/set_image_data.js';
+
+import { createActor } from './core/scalers.js';
 
 export default class LockscreenExtension extends Extension {
     /* Called when screen is locked */
@@ -43,10 +47,23 @@ export default class LockscreenExtension extends Extension {
             return;
         }
 
+        let discoverer = new GstPbutils.Discoverer({ timeout: 3 * Gst.SECOND });
+        let info = discoverer.discover_uri(GLib.filename_to_uri(
+            videoPath, null
+        ));
+        let videoStreams = info.get_video_streams();
+        if (videoStreams.length > 0) {
+            let stream = videoStreams[0];
+            this.width = stream.get_width();
+            this.height = stream.get_height();
+            console.log('video size:', this.width, this.height);
+        }
         
         // These settings are common for all monitors
-        const loop = this._settings.get_boolean(Keys.LOOPED);
         this._fadeInDuration = this._settings.get_int(Keys.FADE_IN_DURATION);
+        this._scalingMode = this._settings.get_int(Keys.SCALING_MODE);
+
+        const loop = this._settings.get_boolean(Keys.LOOPED);
         const volume = this._settings.get_int(Keys.AUDIO_VOLUME) / 100
         const blurBrightness = this._settings.get_double(Keys.BLUR_BRIGHTNESS);
         const blurRadius = this._settings.get_int(Keys.BLUR_RADIUS);
@@ -103,27 +120,25 @@ export default class LockscreenExtension extends Extension {
         const monitor = Main.layoutManager.monitors[monitorIndex];
         const isLastMonitor = monitorIndex === Main.layoutManager.monitors.length - 1;
 
-        const image = St.ImageContent.new_with_preferred_size(
-            monitor.width, monitor.height
-        );
+        const { actor, container, image } = createActor({
+            monitor,
+            video_width: this.width, 
+            video_height: this.height,
+            scaling_mode: this._scalingMode,
+        })
 
-        const videoActor = new Clutter.Actor({
-            x: monitor.x,
-            y: monitor.y,
-            width: monitor.width,
-            height: monitor.height,
-            content: image,
-        });
-        videoActor.add_effect(new Shell.BlurEffect(this._blurEffect));
-
-        this._actors.push(videoActor);
+        let mainActor = container ? container : actor;
+        print(mainActor)
+        
+        this._actors.push(mainActor);
         this._images.push(image);
-
-        Main.screenShield._dialog._backgroundGroup.add_child(videoActor);
-        Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(videoActor, null);
+        
+        mainActor.add_effect(new Shell.BlurEffect(this._blurEffect));
+        Main.screenShield._dialog._backgroundGroup.add_child(mainActor);
+        Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(mainActor, null);
 
         if (this._fadeInDuration > 0) {
-            videoActor.opacity = 0;
+            mainActor.opacity = 0;
         }
 
         if (isLastMonitor) {
