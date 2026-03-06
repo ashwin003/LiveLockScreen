@@ -1,0 +1,95 @@
+<p align="center">
+  <img src="icon.png" width="128" height="128" alt="Live Lock Screen icon">
+</p>
+
+# Live Lock Screen
+
+A GNOME Shell extension that lets you set any video as your lock screen background.
+
+> ⚠️ This branch is experimental and aims to solve issues present in the current stable version while improving performance and compatibility with older GNOME versions.
+>
+> Once testing is complete, this version will replace the current stable release.
+
+## Features
+
+- 🎬 Play any video file as the lock screen background
+- 🔁 Loop support
+- 🎨 Video scaling modes (cover, fit, stretch)
+- 🔲 Transparent video support (RGBA)
+- ⏸️ Automatic pause/play on suspend and wake
+- 🌌 Configurable fade-in animation
+- 🖥️ Multi-monitor support
+- 🌫️ Blur effect with adjustable radius and brightness
+- 🎞️ Configurable frame rate (1–120 FPS)
+- 🔊 Optional audio output with volume control and fade-in/out
+- 🔑 Interactive behavior on password prompt (blur/brightness change, video pause, etc.)
+
+## TODO
+
+- [ ] Test thoroughly
+- [ ] Publish to extensions.gnome.org
+
+## Known Issues
+
+- Possible audio and video desync after suspend/wake
+- Window popping animation at startup if the fade-in duration is too low. Set it to **500ms or higher**.
+- Brief green frame when the video starts. Setting the fade-in duration above **0ms** usually hides this.
+- Possible clicking/crackling sounds when pausing/playing video with audio
+
+## Installation
+
+### Manual
+
+1. Clone the repository:
+
+   ```bash
+   git clone -b experimental https://github.com/nick-redwill/LiveLockScreen.git
+   ```
+2. Copy to your extensions folder:
+
+   ```bash
+   cp -r LiveLockScreen ~/.local/share/gnome-shell/extensions/live-lockscreen@nick-redwill
+   ```
+3. Log out and back in, then enable the extension:
+
+   ```bash
+   gnome-extensions enable live-lockscreen@nick-redwill
+   ```
+4. Open the extension preferences and select your video file.
+
+## Requirements
+
+- GNOME Shell 46-49
+- GStreamer with good/bad plugins:
+  ```bash
+    # Fedora
+    sudo dnf install gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly gstreamer1-plugins-bad-free-extras
+
+    # Ubuntu/Debian
+    sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
+  ```
+- GStreamer GTK4 video sink (`gtk4paintablesink`):
+  ```bash
+    # Fedora
+    sudo dnf install gstreamer1-plugin-gtk4
+
+    # Ubuntu 24.10+ / Debian (newer)
+    sudo apt install gstreamer1.0-gtk4
+
+    # Ubuntu 24.04 — not available as a package.
+    # Either build from source or download from launchpad
+  ```
+
+## Support
+
+If you enjoy this extension, consider buying me a tea 🍵 (I’m not really a coffee person :D)
+
+<p align="center">
+  <a href="https://www.buymeacoffee.com/andromedamb">
+    <img src="https://github.com/user-attachments/assets/3b58a7fc-e605-4742-94e9-0bf3144c5021" width="200"/>
+  </a>
+</p>
+
+## License
+
+AGPL-3.0
