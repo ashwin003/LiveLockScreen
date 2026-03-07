@@ -92,8 +92,9 @@ export default class LockscreenExtension extends Extension {
 
             for (const win of data) {
                 // Hiding window from list of visible windows
-                win.hide_from_window_list();
-                win.set_type(Meta.WindowType.DESKTOP);
+                //FIXME: Enable only for GNOME 49+
+                // win.hide_from_window_list();
+                // win.set_type(Meta.WindowType.DESKTOP);
                 // Making window fullscreen on extension side
                 // FIXME: 
                 // Fullscreen window might cause other extensions (e.g. caffeine)
