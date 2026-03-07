@@ -187,10 +187,12 @@ app.connect('activate', () => {
 
         window.set_child(picture);
         window.set_opacity(1);
+        window.set_decorated(false);
 
         window.connect('realize', () => {
             window.get_surface().set_opaque_region(null);
-            window.fullscreen_on_monitor(gdkMonitor);
+            // Letting the extension handle this
+            // window.fullscreen_on_monitor(gdkMonitor);
         });
 
         window.present();

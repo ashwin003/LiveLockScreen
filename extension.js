@@ -6,6 +6,7 @@ import {Extension, InjectionManager} from 'resource:///org/gnome/shell/extension
 import St from 'gi://St';
 import Shell from 'gi://Shell';
 import Clutter from 'gi://Clutter';
+import Meta from 'gi://Meta';
 
 import { Keys } from './enums.js';
 import { PlayerProcess } from './core/player_process.js';
@@ -74,14 +75,34 @@ export default class LockscreenExtension extends Extension {
         }
 
         this._injectionManager = new InjectionManager();
+        // Temporarily hide all animations for windows
+        this._injectionManager.overrideMethod(
+            Main.wm,
+            '_shouldAnimateActor',
+            (original) => {
+                return function(actor, types) {
+                    return false;
+                };
+            }
+        );
+
         const monitorCount = Main.layoutManager.monitors.length;
         this._player.waitForWindows(monitorCount, 10000, (data) => {
-            for (const win of data) {    
-                const monitorIndex = win.get_monitor()
+            let monitorIndex = 0;
 
-                if (!(monitorIndex in this._windowActors)) {
-                    this._windowActors[monitorIndex] = win.get_compositor_private();
-                }
+            for (const win of data) {
+                // Hiding window from list of visible windows
+                win.hide_from_window_list();
+                win.set_type(Meta.WindowType.DESKTOP);
+                // Making window fullscreen on extension side
+                // FIXME: 
+                // Fullscreen window might cause other extensions (e.g. caffeine)
+                // to fire, Need to come up with better alternative. Changing
+                // frame size doesnt help, there is a small gap left
+                win.move_to_monitor(monitorIndex);
+                win.make_fullscreen();
+
+                this._windowActors[monitorIndex++] = win.get_compositor_private();
             }
 
             this._injectCreateBackground();
