@@ -27,6 +27,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 ## TODO
 
 - [ ] Test thoroughly
+- [ ] Add "Disable on battery" flag
 - [ ] Publish to extensions.gnome.org
 
 ## Known Issues
