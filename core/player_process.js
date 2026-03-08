@@ -17,7 +17,7 @@ export class PlayerProcess {
         this._windowSignal = null;
     }
 
-    spawn() {
+    run() {
         const [success, pid, stdinFd] = GLib.spawn_async_with_pipes(
             null,
             [
@@ -47,7 +47,6 @@ export class PlayerProcess {
             throw new Error('PlayerProcess: call spawn() before waitForWindows()');
 
         const startTime = Date.now();
-
         this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
             const matched = global.get_window_actors()
                 .map(a => a.get_meta_window())
@@ -90,16 +89,12 @@ export class PlayerProcess {
 
     get pid() { return this._pid; }
     get windows() { return this._windows; }
-    
-    _cancelWindowWatch() {
-        if (this._windowSignal !== null) {
-            global.display.disconnect(this._windowSignal);
-            this._windowSignal = null;
-        }
-    }
 
     destroy() {
-        this._cancelWindowWatch();
+        if (this._timeoutId !== null) {
+            GLib.source_remove(this._timeoutId);
+            this._timeoutId = null;
+        }
 
         if (this._pid) {
             try { GLib.spawn_command_line_sync(`kill ${this._pid}`); } catch (_) {}
