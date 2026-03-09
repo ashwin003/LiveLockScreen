@@ -72,6 +72,7 @@ export default class LockscreenExtension extends Extension {
 
 
         // Temporarily hide all animations for windows
+        this._injectionManager = new InjectionManager();
         this._injectionManager.overrideMethod(
             Main.wm,
             '_shouldAnimateActor',
