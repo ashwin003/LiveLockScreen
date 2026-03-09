@@ -54,14 +54,14 @@ export default class LockscreenExtension extends Extension {
         };
 
         this._player = new PlayerProcess({
-            playerPath: this.path + '/external/player_multi.js',
+            playerPath: this.path + '/external/run.js',
             videoPath,
             scalingMode: this._scalingMode,
             loop,
             volume,
             framerate,
         });
-
+        
         try {
             this._player.run();
         } catch (e) {
@@ -69,7 +69,6 @@ export default class LockscreenExtension extends Extension {
             this._player = null;
             return;
         }
-
 
         // Temporarily hide all animations for windows
         this._injectionManager = new InjectionManager();
@@ -224,6 +223,7 @@ export default class LockscreenExtension extends Extension {
         if (isLastMonitor) {
             this._initLoginManager();
             this._startAnimation();
+            this._player.play(); // Playing video once all monitors are handled
         }
     }
 
