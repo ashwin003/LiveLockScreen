@@ -60,7 +60,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## Requirements
 
-- GNOME Shell 46-49
+- GNOME Shell 46+
 - GStreamer with good/bad plugins:
   ```bash
     # Fedora
