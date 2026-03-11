@@ -13,7 +13,8 @@ import { PlayerProcess } from './core/player_process.js';
 
 export default class LockscreenExtension extends Extension {
     enable() {
-        this._wrapperActors = [];
+        this._backgroundCreated = false;
+        this._wrapperActors = {};
         this._windowActors = {};
         this._promptShown = false;
         this._injectionManager = null;
@@ -96,7 +97,7 @@ export default class LockscreenExtension extends Extension {
                 // FIXME: 
                 // Fullscreen window might cause other extensions (e.g. caffeine)
                 // to fire, Need to come up with better alternative. Changing
-                // frame size doesnt help, there is a small gap left
+                // frame size doesnt help, there is a small gap leftz
                 win.move_to_monitor(monitorIndex);
                 win.make_fullscreen();
 
@@ -154,7 +155,7 @@ export default class LockscreenExtension extends Extension {
             const radius = this._promptSettings[Keys.PROMPT_BLUR_RADIUS];
             const brightness = radius ? this._promptSettings[Keys.PROMPT_BLUR_BRIGHTNESS] : 1;
 
-            this._wrapperActors.forEach(actor => {
+            Object.values(this._wrapperActors).forEach(actor => {
                 actor.ease_property('@effects.lockscreen-extension-blur.radius', radius, {
                     duration: this._promptSettings[Keys.PROMPT_BLUR_ANIM_DURATION],
                     mode: Clutter.AnimationMode.EASE_OUT_QUAD,
@@ -178,7 +179,7 @@ export default class LockscreenExtension extends Extension {
             const radius = this._blurRadius;
             const brightness = radius ? this._blurBrightness : 1;
             
-            this._wrapperActors.forEach(actor => {
+            Object.values(this._wrapperActors).forEach(actor => {
                 actor.ease_property('@effects.lockscreen-extension-blur.radius', radius, {
                     duration: this._promptSettings[Keys.PROMPT_BLUR_ANIM_DURATION],
                     mode: Clutter.AnimationMode.EASE_OUT_QUAD,
@@ -195,40 +196,56 @@ export default class LockscreenExtension extends Extension {
     }
 
     _handleMonitor(monitorIndex) {
-        const isLastMonitor = monitorIndex === Main.layoutManager.monitors.length - 1;
-        const windowActor = this._windowActors[monitorIndex];
-
-        if (!windowActor) {
-            console.warn(`No window actor for monitor ${monitorIndex}, skipping`);
+        if (monitorIndex in this._wrapperActors) {
+            console.warn(`Wrapper already exists for monitor ${monitorIndex}, skipping`);
             return;
         }
 
-        const parent = windowActor.get_parent();
-        if (parent) parent.remove_child(windowActor);
-
-        const wrapper = new Clutter.Actor({
-            x: 0, y: 0,
-        });
-
-        Main.screenShield._dialog._backgroundGroup.add_child(wrapper);
-        Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(wrapper, null);
+        const isLastMonitor = monitorIndex === Main.layoutManager.monitors.length - 1;
+        const windowActor = this._windowActors[monitorIndex];
         
-        wrapper.add_effect(new Shell.BlurEffect(this._blurEffect));
-        wrapper.opacity = 0;
-        
-        wrapper.add_child(windowActor);
-        wrapper.set_child_above_sibling(windowActor, null);
-        this._wrapperActors.push(wrapper)
+        if (windowActor) {
+            const parent = windowActor.get_parent();
+            if (parent) parent.remove_child(windowActor);
+            
+            const wrapper = new Clutter.Actor({
+                x: 0, y: 0,
+            });
+            
+            Main.screenShield._dialog._backgroundGroup.add_child(wrapper);
+            Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(wrapper, null);
+            
+            wrapper.add_effect(new Shell.BlurEffect(this._blurEffect));
+            
+            if (!this._backgroundCreated)
+                wrapper.opacity = 0;
 
-        if (isLastMonitor) {
+            wrapper.add_child(windowActor);
+            wrapper.set_child_above_sibling(windowActor, null);
+
+            wrapper.connect('destroy', () => {
+                const p = windowActor.get_parent();
+                if (p) p.remove_child(windowActor);
+                global.window_group.add_child(windowActor);
+                delete this._wrapperActors[monitorIndex];
+            });
+
+            this._wrapperActors[monitorIndex] = wrapper;
+        } else {
+            console.warn(`No window actor for monitor ${monitorIndex}, skipping`);
+        }
+       
+        if (!this._backgroundCreated && isLastMonitor) {
             this._initLoginManager();
             this._startAnimation();
-            this._player.play(); // Playing video once all monitors are handled
+            this._player.play();
+
+            this._backgroundCreated = true;
         }
     }
 
     _startAnimation() {
-        this._wrapperActors.forEach(actor => actor.ease({
+        Object.values(this._wrapperActors).forEach(actor => actor.ease({
             opacity: 255,
             duration: this._fadeInDuration,
             mode: Clutter.AnimationMode.EASE_IN_QUAD,
@@ -264,10 +281,10 @@ export default class LockscreenExtension extends Extension {
             this._sleepId = null;
         }
 
-        this._wrapperActors.forEach(actor => {
+        Object.values(this._wrapperActors).forEach(actor => {
             actor.remove_effect_by_name('lockscreen-extension-blur');
             actor.destroy()
         })
-        this._wrapperActors = [];
+        this._wrapperActors = {};
     }
 }
