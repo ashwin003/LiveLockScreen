@@ -44,30 +44,35 @@ export class PlayerProcess {
     }
 
     waitForWindows(count, timeoutMs, callback, errback) {
-        if (this._pid === null)
-            throw new Error('PlayerProcess: call spawn() before waitForWindows()');
+        const collected = {};
+        
+        this._mapId = global.window_manager.connect_after('map', (_wm, windowActor) => {
+            const win = windowActor.get_meta_window();
+            if (win.get_pid() != this._pid) return;
 
-        const startTime = Date.now();
-        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-            const matched = global.get_window_actors()
-                .map(a => a.get_meta_window())
-                .filter(w => w.get_pid() === this._pid);
+            win.move_to_monitor(this._monitorIndex);
+            win.make_fullscreen();
 
-            if (matched.length >= count) {
-                this._timeoutId = null;
-                this._windows = matched;
-                callback(matched);
-                return GLib.SOURCE_REMOVE;
+            collected[this._monitorIndex] = win;
+            this._monitorIndex++;
+
+            if (Object.keys(collected).length === count) {
+                global.window_manager.disconnect(this._mapId);
+                this._mapId = null;
+                this._monitorIndex = 0;
+                this._windows = Object.values(collected);
+                callback(this._windows);
             }
+        });
 
-            if (Date.now() - startTime > timeoutMs) {
-                this.destroy();
-                this._timeoutId = null;
-                errback?.(`timed out (got ${matched.length}/${count})`);
-                return GLib.SOURCE_REMOVE;
+        this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, timeoutMs, () => {
+            if (this._mapId) {
+                global.window_manager.disconnect(this._mapId);
+                this._mapId = null;
             }
-
-            return GLib.SOURCE_CONTINUE;
+            this._timeoutId = null;
+            errback?.(`timed out waiting for windows (got ${Object.keys(collected).length}/${count})`);
+            return GLib.SOURCE_REMOVE;
         });
     }
 
@@ -95,6 +100,11 @@ export class PlayerProcess {
         if (this._timeoutId !== null) {
             GLib.source_remove(this._timeoutId);
             this._timeoutId = null;
+        }
+
+        if (this._mapId) {
+            global.window_manager.disconnect(this._mapId);
+            this._mapId = null;
         }
 
         if (this._pid) {
