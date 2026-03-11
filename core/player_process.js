@@ -44,24 +44,18 @@ export class PlayerProcess {
     }
 
     waitForWindows(count, timeoutMs, callback, errback) {
-        const collected = {};
+        const collected = [];
         
         this._mapId = global.window_manager.connect_after('map', (_wm, windowActor) => {
             const win = windowActor.get_meta_window();
             if (win.get_pid() != this._pid) return;
 
-            win.move_to_monitor(this._monitorIndex);
-            win.make_fullscreen();
+            collected.push(win);
 
-            collected[this._monitorIndex] = win;
-            this._monitorIndex++;
-
-            if (Object.keys(collected).length === count) {
+            if (collected.length === count) {
                 global.window_manager.disconnect(this._mapId);
                 this._mapId = null;
-                this._monitorIndex = 0;
-                this._windows = Object.values(collected);
-                callback(this._windows);
+                callback(collected);
             }
         });
 
