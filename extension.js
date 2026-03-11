@@ -205,6 +205,12 @@ export default class LockscreenExtension extends Extension {
         const windowActor = this._windowActors[monitorIndex];
         
         if (windowActor) {
+            //HACK: 
+            // Moving to monitor by index to prevent actor from staying 
+            // in invalid position
+            //FIXME: Rely on monitor unique id instead of index
+            windowActor.get_meta_window().move_to_monitor(monitorIndex);
+
             const parent = windowActor.get_parent();
             if (parent) parent.remove_child(windowActor);
             
