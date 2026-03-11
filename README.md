@@ -40,9 +40,9 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 ## Known Issues
 
 - Possible audio and video desync after suspend/wake
-- Window popping animation at startup if the fade-in duration is too low. Set it to **500ms or higher**.
 - Brief green frame when the video starts. Setting the fade-in duration above **0ms** usually hides this.
 - Possible clicking/crackling sounds when pausing/playing video with audio
+- Video positioning issues when connecting/disconnecting monitors with lock screen on
 
 ## Installation
 
