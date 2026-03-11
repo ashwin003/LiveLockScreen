@@ -1,4 +1,5 @@
 import Gio from 'gi://Gio';
+import GioUnix from 'gi://GioUnix';
 import GLib from 'gi://GLib';
 
 
@@ -38,7 +39,7 @@ export class PlayerProcess {
 
         this._pid = pid;
 
-        const stdinStream = new Gio.UnixOutputStream({ fd: stdinFd, close_fd: true });
+        const stdinStream = new GioUnix.OutputStream({ fd: stdinFd, close_fd: true });
         this._stdin = new Gio.DataOutputStream({ base_stream: stdinStream });
     }
 
