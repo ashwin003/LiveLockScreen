@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/github/stars/nick-redwill/LiveLockScreen">
   <img src="https://img.shields.io/github/license/nick-redwill/LiveLockScreen">
   <img src="https://img.shields.io/badge/GNOME%20Shell-46--50-blue">
-  <img src="https://img.shields.io/badge/status-experimental-orange">
+  <img src="https://img.shields.io/badge/status-active-success">
 </p>
 
 <p align="center">
@@ -13,9 +13,7 @@
 
 A GNOME Shell extension that lets you set any video as your lock screen background.
 
-> ⚠️ This branch is experimental and aims to solve issues present in the current stable version while improving performance and compatibility with older GNOME versions.
->
-> Once testing is complete, this version will replace the current stable release.
+> ⚠️ If you are having issues with current version you may check out legacy branch however it is highly recommended to stick with new versions for better performance.
 
 ## Features
 
@@ -33,7 +31,6 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 ## TODO
 
-- [ ] Test thoroughly
 - [ ] Publish to extensions.gnome.org
 
 ## Known Issues
