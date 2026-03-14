@@ -46,7 +46,7 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 1. Clone the repository:
 
    ```bash
-   git clone -b experimental https://github.com/nick-redwill/LiveLockScreen.git
+   git clone https://github.com/nick-redwill/LiveLockScreen.git
    ```
 2. Copy to your extensions folder:
 
