@@ -4,12 +4,13 @@ import GLib from 'gi://GLib';
 
 
 export class PlayerProcess {
-    constructor({ playerPath, videoPath, scalingMode, loop, volume, framerate }) {
+    constructor({ playerPath, videoPath, scalingMode, loop, volume, useVideorate = false, framerate }) {
         this._playerPath = playerPath;
         this._videoPath = videoPath;
         this._scalingMode = scalingMode;
         this._loop = loop;
         this._volume = volume;
+        this._useVideorate = useVideorate;
         this._framerate = framerate;
 
         this._pid = null;
@@ -27,6 +28,7 @@ export class PlayerProcess {
                 String(this._scalingMode),
                 String(this._loop),
                 String(this._volume),
+                String(this._useVideorate),
                 String(this._framerate),
             ],
             null,
@@ -55,6 +57,12 @@ export class PlayerProcess {
             if (collected.length === count) {
                 global.window_manager.disconnect(this._mapId);
                 this._mapId = null;
+
+                if (this._timeoutId !== null) {
+                    GLib.source_remove(this._timeoutId);
+                    this._timeoutId = null;
+                }
+
                 callback(collected);
             }
         });

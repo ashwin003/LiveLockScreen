@@ -10,6 +10,10 @@ import Clutter from 'gi://Clutter';
 import { Keys } from './enums.js';
 import { PlayerProcess } from './core/player_process.js';
 
+import { isOnBattery } from './utils/battery.js';
+import { isGtk4PaintableSinkAvailable } from './utils/check_dependencies.js';
+import { sendErrorNotification } from './utils/notifications.js';
+
 
 export default class LockscreenExtension extends Extension {
     enable() {
@@ -20,11 +24,25 @@ export default class LockscreenExtension extends Extension {
         this._injectionManager = null;
         this._player = null;
 
+        if (!isGtk4PaintableSinkAvailable()) {
+            sendErrorNotification(
+                'gtk4paintablesink is not available.' +
+                'See README.md for installation instructions.'
+            );
+            return;
+        }
+
         this._settings = this.getSettings();
+
+        const disableOnBatter = this._settings.get_boolean(Keys.DISABLE_ON_BATTERY);
+        if (disableOnBatter && isOnBattery()) {
+            console.warn('Skipping on battery');
+            return;            
+        }
 
         const videoPath = this._settings.get_string(Keys.VIDEO_PATH);
         if (!videoPath) {
-            console.warning('Video not set, falling back');
+            console.warn('Video not set, falling back');
             return;
         }
 
@@ -35,10 +53,12 @@ export default class LockscreenExtension extends Extension {
 
         const volume = this._settings.get_int(Keys.AUDIO_VOLUME) / 100;
         const loop = this._settings.get_boolean(Keys.LOOPED);
+        const useVideorate = this._settings.get_boolean(Keys.USE_VIDEORATE);
         const framerate = this._settings.get_int(Keys.FRAMERATE);
 
         this._promptSettings = {
             [Keys.PROMPT_PAUSE]:              this._settings.get_boolean(Keys.PROMPT_PAUSE),
+            [Keys.PROMPT_GRAYSCALE]:          this._settings.get_boolean(Keys.PROMPT_GRAYSCALE),
             [Keys.PROMPT_CHANGE_BLUR]:        this._settings.get_boolean(Keys.PROMPT_CHANGE_BLUR),
             [Keys.PROMPT_BLUR_RADIUS]:        this._settings.get_int(Keys.PROMPT_BLUR_RADIUS),
             [Keys.PROMPT_BLUR_ANIM_DURATION]: this._settings.get_int(Keys.PROMPT_BLUR_ANIM_DURATION),
@@ -60,6 +80,7 @@ export default class LockscreenExtension extends Extension {
             scalingMode: this._scalingMode,
             loop,
             volume,
+            useVideorate,
             framerate,
         });
         
@@ -88,19 +109,6 @@ export default class LockscreenExtension extends Extension {
             let monitorIndex = 0;
 
             for (const win of data) {
-                // Hiding window from list of visible windows
-                // FIXME: Enable only for GNOME 49+
-                // win.hide_from_window_list();
-                // win.set_type(Meta.WindowType.DESKTOP);
-                
-                // Making window fullscreen on extension side
-                // FIXME: 
-                // Fullscreen window might cause other extensions (e.g. caffeine)
-                // to fire, Need to come up with better alternative. Changing
-                // frame size doesnt help, there is a small gap leftz
-                win.move_to_monitor(monitorIndex);
-                win.make_fullscreen();
-
                 this._windowActors[monitorIndex++] = win.get_compositor_private();
             }
 
@@ -166,6 +174,15 @@ export default class LockscreenExtension extends Extension {
                 });
             })
         }
+
+        if (this._promptSettings[Keys.PROMPT_GRAYSCALE]) {
+            Object.values(this._wrapperActors).forEach(actor => {
+                actor.ease_property('@effects.lockscreen-extension-desaturate.factor', 1.0, {
+                    duration: this._promptSettings[Keys.PROMPT_BLUR_ANIM_DURATION],
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            })
+        }
         
         if (this._promptSettings[Keys.PROMPT_PAUSE])
             this._player?.pause();
@@ -191,6 +208,15 @@ export default class LockscreenExtension extends Extension {
             });
         }
 
+        if (this._promptSettings[Keys.PROMPT_GRAYSCALE]) {
+            Object.values(this._wrapperActors).forEach(actor => {
+                actor.ease_property('@effects.lockscreen-extension-desaturate.factor', 0.0, {
+                    duration: this._promptSettings[Keys.PROMPT_BLUR_ANIM_DURATION],
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                });
+            })
+        }
+
         if (this._promptSettings[Keys.PROMPT_PAUSE])
             this._player?.play();
     }
@@ -205,12 +231,6 @@ export default class LockscreenExtension extends Extension {
         const windowActor = this._windowActors[monitorIndex];
         
         if (windowActor) {
-            //HACK: 
-            // Moving to monitor by index to prevent actor from staying 
-            // in invalid position
-            //FIXME: Rely on monitor unique id instead of index
-            windowActor.get_meta_window().move_to_monitor(monitorIndex);
-
             const parent = windowActor.get_parent();
             if (parent) parent.remove_child(windowActor);
             
@@ -222,6 +242,14 @@ export default class LockscreenExtension extends Extension {
             Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(wrapper, null);
             
             wrapper.add_effect(new Shell.BlurEffect(this._blurEffect));
+
+            // Adding color desaturation effect if needed
+            if (this._promptSettings[Keys.PROMPT_GRAYSCALE]) {
+                wrapper.add_effect_with_name(
+                    'lockscreen-extension-desaturate', 
+                    new Clutter.DesaturateEffect({ factor: 0.0 })
+                );
+            }
             
             if (!this._backgroundCreated)
                 wrapper.opacity = 0;
@@ -237,6 +265,16 @@ export default class LockscreenExtension extends Extension {
             });
 
             this._wrapperActors[monitorIndex] = wrapper;
+
+            // Making window fullscreen on extension side
+            // FIXME: 
+            // Fullscreen window might cause other extensions (e.g. caffeine)
+            // to fire, Need to come up with better alternative. Changing
+            // frame size doesnt help, there is a small gap leftz
+            const win = windowActor.get_meta_window();
+            win.move_to_monitor(monitorIndex);
+            win.make_fullscreen();
+
         } else {
             console.warn(`No window actor for monitor ${monitorIndex}, skipping`);
         }

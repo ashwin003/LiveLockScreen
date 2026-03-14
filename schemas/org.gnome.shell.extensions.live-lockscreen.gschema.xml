@@ -1,5 +1,9 @@
 <schemalist>
     <schema id="org.gnome.shell.extensions.live-lockscreen" path="/org/gnome/shell/extensions/live-lockscreen/">
+        <key name="general-disable-on-battery" type="b">
+            <default>false</default>
+            <summary>Whether to disable the extension when on battery</summary>
+        </key>
         <key name="background-video-path" type="s">
             <default>""</default>
             <summary>Path to background video</summary>
@@ -18,6 +22,10 @@
             <range min="0" max="1" />
             <default>0.65</default>
             <summary>Background video brightness</summary>
+        </key>
+        <key name="background-video-use-videorate" type="b">
+            <default>false</default>
+            <summary>Whether to use videorate element in pipeline</summary>
         </key>
         <key name="background-video-framerate" type="i">
             <range min="1" max="120" />
@@ -43,6 +51,10 @@
             <default>false</default>
             <summary>Whether to pause the video on password prompt</summary>
         </key>
+        <key name="prompt-grayscale" type="b">
+            <default>false</default>
+            <summary>Whether to grayscale the video on password prompt</summary>
+        </key>
         <key name="prompt-change-blur" type="b">
             <default>false</default>
             <summary>Whether to change the blur value on password prompt</summary>
@@ -63,5 +75,7 @@
             <default>300</default>
             <summary>Background video blur change animation duration</summary>
         </key>
+
+
     </schema>
 </schemalist>

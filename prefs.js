@@ -2,8 +2,8 @@ import Adw from 'gi://Adw';
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 
-import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
-
+import { ExtensionPreferences } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { isGtk4PaintableSinkAvailable } from './utils/check_dependencies.js';
 import { Keys } from "./enums.js";
 
 
@@ -13,12 +13,35 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         window.set_default_size(600, 700);
 
         let page = new Adw.PreferencesPage();
+        if (!isGtk4PaintableSinkAvailable()) {
+            page.add(this._buildDependencyErrorGroup());
+        }
 
         page.add(this._buildGeneralGroup(window))
         page.add(this._buildAppearanceGroup(window))
         page.add(this._buildPromptGroup(window))
 
         window.add(page);
+    }
+
+    _buildDependencyErrorGroup() {
+        const group = new Adw.PreferencesGroup();
+
+        const row = new Adw.ActionRow({
+            title: 'Missing dependency',
+            subtitle: 
+                `gtk4paintablesink is not available.\n\n` +
+                `Install the GStreamer GTK4 plugin for your distribution:\n` +
+                `  • Fedora/RHEL: gstreamer1-plugins-gtk4\n` +
+                `  • Ubuntu/Debian: gstreamer1.0-gtk4\n` +
+                `  • Arch: gst-plugin-gtk4\n\n` +
+                `See README.md for more information.`,
+            icon_name: 'dialog-error-symbolic',
+        });
+        row.add_css_class('error');
+
+        group.add(row);
+        return group;
     }
 
     _buildGeneralGroup(window) {
@@ -71,6 +94,15 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         );
         generalGroup.add(loopSwitch);
 
+        const batteryRow = new Adw.SwitchRow({
+            title: 'Disable on battery',
+        });
+        window._settings.bind(
+            Keys.DISABLE_ON_BATTERY, batteryRow,
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        generalGroup.add(batteryRow);
+
         return generalGroup;
     }
 
@@ -78,6 +110,16 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         let appearanceGroup = new Adw.PreferencesGroup({
             title: 'Appearance',
         });
+
+        let changeFramerateRow = new Adw.SwitchRow({
+            title: 'Change framerate',
+            subtitle: 'This may cause artifacts and performance issues due to conversion overhead',
+        });
+        window._settings.bind(
+            Keys.USE_VIDEORATE, changeFramerateRow,
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        appearanceGroup.add(changeFramerateRow);
 
         let fpsRow = new Adw.SpinRow({
             title: 'Framerate',
@@ -97,20 +139,24 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
             css_classes: ['dim-label'],
         });
         fpsRow.add_suffix(fpsSuffix);
-
         appearanceGroup.add(fpsRow);
+
+        const toggleFpsRow = () => {
+            fpsRow.set_visible(changeFramerateRow.active);
+        };
+        toggleFpsRow();
+        changeFramerateRow.connect('notify::active', toggleFpsRow);
 
         let fadeInRow = new Adw.SpinRow({
             title: 'Fade in',
             subtitle: 'Video fade-in animation duration',
             adjustment: new Gtk.Adjustment({
                 lower: 0,
-                upper: 600 * 1000, // 10 minutes (I think thats big enough)
+                upper: 600 * 1000,
                 step_increment: 100,
                 value: window._settings.get_int(Keys.FADE_IN_DURATION),
             }),
         });
-        // Add "ms" suffix label
         let fadeSuffix = new Gtk.Label({
             label: 'ms',
             valign: Gtk.Align.CENTER,
@@ -161,10 +207,9 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         };
         toggleBrightnessSpin();
 
-        // Connecting signals
         blurRadiusRow.connect('notify::value', row => {
             window._settings.set_int(Keys.BLUR_RADIUS, row.get_value());
-            toggleBrightnessSpin()
+            toggleBrightnessSpin();
         });
         blurBrightnessRow.connect('notify::value', row => {
             window._settings.set_double(Keys.BLUR_BRIGHTNESS, row.get_value() / 100);
@@ -187,6 +232,15 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
             'active', Gio.SettingsBindFlags.DEFAULT
         );
         promptGroup.add(pauseSwitch);
+
+        const grayscaleSwitch = new Adw.SwitchRow({
+            title: 'Grayscale video'
+        });
+        window._settings.bind(
+            Keys.PROMPT_GRAYSCALE, grayscaleSwitch,
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        promptGroup.add(grayscaleSwitch);
 
         const changeBlurSwitch = new Adw.SwitchRow({
             title: 'Change blur'
@@ -262,9 +316,8 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
 
         const toggleBlurRows = () => {
             const enabled = changeBlurSwitch.active;
-            blurRadiusRow.set_sensitive(enabled);
-            blurBrightnessRow.set_sensitive(enabled);
-            animDurationRow.set_sensitive(enabled);
+            blurRadiusRow.set_visible(enabled);
+            blurBrightnessRow.set_visible(enabled);
         };
         toggleBlurRows();
         changeBlurSwitch.connect('notify::active', toggleBlurRows);

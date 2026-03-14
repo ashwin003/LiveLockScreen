@@ -7,11 +7,12 @@ import { ScalingMode } from "../enums.js";
 import CommandHandler from "./command_handler.js";
 
 export default class PlayerMulti {
-    constructor({ path, scalingMode, loop, volume, framerate }) {
+    constructor({ path, scalingMode, loop, volume, useVideorate, framerate }) {
         this._path = path;
         this._scalingMode = scalingMode;
         this._loop = loop;
         this._volume = volume;
+        this._useVideorate = useVideorate;
         this._framerate = framerate;
 
         this._pipeline = null;
@@ -35,12 +36,11 @@ export default class PlayerMulti {
 
     _activate() {
         try {
-            const useVideorate = true; // TODO: Hardcoded for now. Change to external argument
             this._pipeline = new Pipeline({
                 path: this._path,
                 volume: this._volume,
                 loop: this._loop,
-                useVideorate,
+                useVideorate: this._useVideorate,
                 framerate: this._framerate,
             });
             this._pipeline.init();
