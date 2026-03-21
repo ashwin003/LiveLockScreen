@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/github/stars/nick-redwill/LiveLockScreen">
   <img src="https://img.shields.io/github/license/nick-redwill/LiveLockScreen">
-  <img src="https://img.shields.io/badge/GNOME%20Shell-46--50-blue">
+  <img alt="GNOME Shell" src="https://img.shields.io/badge/GNOME_Shell-46%2B-4A86CF?logo=gnome&logoColor=white"/>
   <img src="https://img.shields.io/badge/status-active-success">
 </p>
 
@@ -65,22 +65,22 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 - GNOME Shell 46+
 - GStreamer with good/bad plugins:
   ```bash
-    # Fedora
-    sudo dnf install gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly gstreamer1-plugins-bad-free-extras
+  # Fedora
+  sudo dnf install gstreamer1-plugins-good gstreamer1-plugins-bad-free gstreamer1-plugins-ugly gstreamer1-plugins-bad-free-extras
 
-    # Ubuntu/Debian
-    sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
+  # Ubuntu/Debian
+  sudo apt install gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly
   ```
 - GStreamer GTK4 video sink (`gtk4paintablesink`):
   ```bash
-    # Fedora
-    sudo dnf install gstreamer1-plugin-gtk4
+  # Fedora
+  sudo dnf install gstreamer1-plugin-gtk4
 
-    # Ubuntu 24.10+ / Debian (newer)
-    sudo apt install gstreamer1.0-gtk4
+  # Ubuntu 24.10+ / Debian (newer)
+  sudo apt install gstreamer1.0-gtk4
 
-    # Ubuntu 24.04 — not available as a package.
-    # Either build from source or download from launchpad
+  # Ubuntu 24.04 — not available as a package.
+  # Either build from source or download from launchpad
   ```
 
 ## Support
