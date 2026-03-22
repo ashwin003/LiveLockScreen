@@ -15,6 +15,17 @@ A GNOME Shell extension that lets you set any video as your lock screen backgrou
 
 > ⚠️ If you are having issues with current version you may check out legacy branch however it is highly recommended to stick with new versions for better performance.
 
+## Design Philosophy
+
+> "Do one thing and do it well."  
+> — Unix philosophy
+
+This extension focuses on a single goal: playing videos on the lock screen.
+
+It is designed to be simple, lightweight, and reliable.
+
+If you're looking for more advanced lock screen or desktop customization, you may want to explore alternative extensions or check out some forks of this project.
+
 ## Features
 
 - 🎬 Play any video file as the lock screen background
