@@ -1,4 +1,4 @@
-<p align="center">
+8<p align="center">
   <img src="https://img.shields.io/github/stars/nick-redwill/LiveLockScreen">
   <img src="https://img.shields.io/github/license/nick-redwill/LiveLockScreen">
   <img alt="GNOME Shell" src="https://img.shields.io/badge/GNOME_Shell-46%2B-4A86CF?logo=gnome&logoColor=white"/>
@@ -39,10 +39,6 @@ If you're looking for more advanced lock screen or desktop customization, you ma
 - 🎞️ Configurable frame rate (1–120 FPS)
 - 🔊 Optional audio output with volume control and fade-in/out
 - 🔑 Interactive behavior on password prompt (blur/brightness change, video pause, grayscale)
-
-## TODO
-
-- [ ] Publish to extensions.gnome.org
 
 ## Known Issues
 
