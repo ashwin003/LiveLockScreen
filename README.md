@@ -1,4 +1,4 @@
-8<p align="center">
+<p align="center">
   <img src="https://img.shields.io/github/stars/nick-redwill/LiveLockScreen">
   <img src="https://img.shields.io/github/license/nick-redwill/LiveLockScreen">
   <img alt="GNOME Shell" src="https://img.shields.io/badge/GNOME_Shell-46%2B-4A86CF?logo=gnome&logoColor=white"/>
