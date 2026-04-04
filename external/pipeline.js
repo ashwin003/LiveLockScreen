@@ -116,7 +116,7 @@ export default class Pipeline {
     }
 
     get_paintable() {
-        return this._videoSink?.get_property('paintable', null) ?? null;   
+        return this._videoSink?.paintable ?? null;   
     }
 
     easeVolume(target, durationMs = 300) {
