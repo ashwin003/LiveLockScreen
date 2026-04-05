@@ -1,7 +1,5 @@
 import Gio from 'gi://Gio';
-import GioUnix from 'gi://GioUnix';
 import GLib from 'gi://GLib';
-
 
 export class PlayerProcess {
     constructor({ 
@@ -17,19 +15,18 @@ export class PlayerProcess {
         this._framerate = framerate;
         this._colorAccurate = colorAccurate;
 
+        this._proc = null;
         this._pid = null;
         this._stdin = null;
         this._windows = [];
-        this._windowSignal = null;
+        this._mapId = null;
+        this._timeoutId = null;
     }
 
     run() {
-        const [success, pid, stdinFd] = GLib.spawn_async_with_pipes(
-            null,
-            [
-                // Explicitly using gjs -m, not relying on shebang 
-                "gjs",
-                "-m",
+        this._proc = new Gio.Subprocess({
+            argv: [
+                'gjs', '-m',
                 this._playerPath,
                 this._videoPath,
                 String(this._scalingMode),
@@ -39,26 +36,23 @@ export class PlayerProcess {
                 String(this._framerate),
                 String(this._colorAccurate),
             ],
-            null,
-            GLib.SpawnFlags.SEARCH_PATH,
-            null
-        );
+            flags: Gio.SubprocessFlags.STDIN_PIPE,
+        });
 
-        if (!success)
-            throw new Error('PlayerProcess: failed to spawn player subprocess');
+        this._proc.init(null);
 
-        this._pid = pid;
-
-        const stdinStream = new GioUnix.OutputStream({ fd: stdinFd, close_fd: true });
-        this._stdin = new Gio.DataOutputStream({ base_stream: stdinStream });
+        this._pid = parseInt(this._proc.get_identifier());
+        this._stdin = new Gio.DataOutputStream({
+            base_stream: this._proc.get_stdin_pipe(),
+        });
     }
 
     waitForWindows(count, timeoutMs, callback, errback) {
         const collected = [];
-        
+
         this._mapId = global.window_manager.connect_after('map', (_wm, windowActor) => {
             const win = windowActor.get_meta_window();
-            if (win.get_pid() != this._pid) return;
+            if (win.get_pid() !== this._pid) return;
 
             collected.push(win);
 
@@ -81,7 +75,7 @@ export class PlayerProcess {
                 this._mapId = null;
             }
             this._timeoutId = null;
-            errback?.(`timed out waiting for windows (got ${Object.keys(collected).length}/${count})`);
+            errback?.(`timed out waiting for windows (got ${collected.length}/${count})`);
             return GLib.SOURCE_REMOVE;
         });
     }
@@ -117,16 +111,17 @@ export class PlayerProcess {
             this._mapId = null;
         }
 
-        if (this._pid) {
-            try { GLib.spawn_command_line_sync(`kill ${this._pid}`); } catch (_) {}
-            this._pid = null;
-        }
-
-        this._windows = [];
-
         if (this._stdin) {
             try { this._stdin.close(null); } catch (_) {}
             this._stdin = null;
         }
+
+        if (this._proc) {
+            try { this._proc.send_signal(9); } catch (_) {} // SIGKILL
+            this._proc = null;
+            this._pid = null;
+        }
+
+        this._windows = [];
     }
 }
