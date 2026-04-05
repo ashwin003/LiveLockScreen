@@ -23,6 +23,9 @@ export class PlayerProcess {
         const [success, pid, stdinFd] = GLib.spawn_async_with_pipes(
             null,
             [
+                // Explicitly using gjs -m, not relying on shebang 
+                "gjs",
+                "-m",
                 this._playerPath,
                 this._videoPath,
                 String(this._scalingMode),
