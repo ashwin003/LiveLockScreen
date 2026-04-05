@@ -18,8 +18,10 @@ import { sendErrorNotification } from './utils/notifications.js';
 export default class LockscreenExtension extends Extension {
     enable() {
         this._backgroundCreated = false;
-        this._wrapperActors = {};
-        this._windowActors = {};
+        this._wrapperActors = {}; // connector -> actor 
+        this._windowActors = {};  // connector -> actor
+        this._lockPositionSignals = [];
+
         this._promptShown = false;
         this._injectionManager = null;
         this._player = null;
@@ -50,6 +52,7 @@ export default class LockscreenExtension extends Extension {
         this._scalingMode = this._settings.get_int(Keys.SCALING_MODE);
         this._blurRadius = this._settings.get_int(Keys.BLUR_RADIUS);
         this._blurBrightness = this._settings.get_double(Keys.BLUR_BRIGHTNESS);
+        this._forceFullscreen = this._settings.get_boolean(Keys.DEBUG_FORCE_FULLSCREEN);
 
         const volume = this._settings.get_int(Keys.AUDIO_VOLUME) / 100;
         const loop = this._settings.get_boolean(Keys.LOOPED);
@@ -108,10 +111,12 @@ export default class LockscreenExtension extends Extension {
 
         const monitorCount = Main.layoutManager.monitors.length;
         this._player.waitForWindows(monitorCount, 10000, (data) => {
-            let monitorIndex = 0;
-
             for (const win of data) {
-                this._windowActors[monitorIndex++] = win.get_compositor_private();
+                //NOTE: Relying on connector name for better reliability (indices are not static)
+                const title = win.get_title() || '';
+                const match = title.match(/^LLS-Player-(.+)$/);
+                const connector = match ? match[1] : null;
+                this._windowActors[connector] = win.get_compositor_private();
             }
 
             this._injectCreateBackground();
@@ -224,21 +229,36 @@ export default class LockscreenExtension extends Extension {
     }
 
     _handleMonitor(monitorIndex) {
-        if (monitorIndex in this._wrapperActors) {
+        let targetConnector = null;
+        const monitorManager = global.backend.get_monitor_manager();
+
+        for (let connector of Object.keys(this._windowActors)) {
+            const idx = monitorManager.get_monitor_for_connector(connector);
+            if (idx == monitorIndex) {
+                targetConnector = connector;
+                break;
+            }
+        }
+
+        if (!targetConnector) {
+            console.warn("Actor not found for this monitor! Skipping...");
+            return;
+        }
+
+        if (targetConnector in this._wrapperActors) {
             console.warn(`Wrapper already exists for monitor ${monitorIndex}, skipping`);
             return;
         }
 
         const isLastMonitor = monitorIndex === Main.layoutManager.monitors.length - 1;
-        const windowActor = this._windowActors[monitorIndex];
+        const monitor = Main.layoutManager.monitors[monitorIndex];
+        const windowActor = this._windowActors[targetConnector];
         
         if (windowActor) {
             const parent = windowActor.get_parent();
             if (parent) parent.remove_child(windowActor);
             
-            const wrapper = new Clutter.Actor({
-                x: 0, y: 0,
-            });
+            const wrapper = new Clutter.Actor();
             
             Main.screenShield._dialog._backgroundGroup.add_child(wrapper);
             Main.screenShield._dialog._backgroundGroup.set_child_above_sibling(wrapper, null);
@@ -263,19 +283,42 @@ export default class LockscreenExtension extends Extension {
                 const p = windowActor.get_parent();
                 if (p) p.remove_child(windowActor);
                 global.window_group.add_child(windowActor);
-                delete this._wrapperActors[monitorIndex];
+                delete this._wrapperActors[targetConnector];
             });
 
-            this._wrapperActors[monitorIndex] = wrapper;
+            if (this._forceFullscreen) {
+                wrapper.set_position(0, 0);
 
-            // Making window fullscreen on extension side
-            // FIXME: 
-            // Fullscreen window might cause other extensions (e.g. caffeine)
-            // to fire, Need to come up with better alternative. Changing
-            // frame size doesnt help, there is a small gap leftz
-            const win = windowActor.get_meta_window();
-            win.move_to_monitor(monitorIndex);
-            win.make_fullscreen();
+                const win = windowActor.get_meta_window();
+                win.move_to_monitor(monitorIndex);
+                win.make_fullscreen();
+
+            } else {
+                wrapper.set_position(monitor.x, monitor.y);
+                wrapper.set_size(monitor.width, monitor.height);
+                wrapper.set_clip_to_allocation(true);
+
+                // NOTE: 
+                // This might look like an overkill, 
+                // but you really need to aggressively position actors on any
+                // size/position change
+                const fixPositionAndScale = () => {
+                    windowActor.set_translation(
+                        -windowActor.x, -windowActor.y, 0
+                    );
+                    windowActor.set_pivot_point(0, 0);
+                    windowActor.set_scale(1, 1);
+                };
+                const sigX = windowActor.connect('notify::x', fixPositionAndScale);
+                const sigY = windowActor.connect('notify::y', fixPositionAndScale);
+                const sigW = windowActor.connect('notify::width', fixPositionAndScale);
+                const sigH = windowActor.connect('notify::height', fixPositionAndScale);
+                this._lockPositionSignals.push({ actor: windowActor, ids: [sigX, sigY, sigW, sigH] });
+               
+                fixPositionAndScale();
+            }
+            
+            this._wrapperActors[targetConnector] = wrapper;
 
         } else {
             console.warn(`No window actor for monitor ${monitorIndex}, skipping`);
@@ -307,6 +350,13 @@ export default class LockscreenExtension extends Extension {
     }
 
     disable() {
+        for (const { actor, ids } of this._lockPositionSignals) {
+            for (const id of ids) {
+                actor.disconnect(id);
+            }
+        }
+        this._lockPositionSignals = [];
+
         // Return all window actors to window_group before destroying
         for (const windowActor of Object.values(this._windowActors)) {
             const parent = windowActor.get_parent();
@@ -329,8 +379,10 @@ export default class LockscreenExtension extends Extension {
 
         Object.values(this._wrapperActors).forEach(actor => {
             actor.remove_effect_by_name('lockscreen-extension-blur');
+            actor.remove_effect_by_name('lockscreen-extension-desaturate');
             actor.destroy()
         })
         this._wrapperActors = {};
+        this._settings = null;
     }
 }

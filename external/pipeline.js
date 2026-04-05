@@ -202,6 +202,10 @@ export default class Pipeline {
         this._volumeControl.set(endTime, safeTarget / 10);
     }
 
+    preroll() {
+        this._pipeline.set_state(Gst.State.PAUSED);
+    }
+
     play() {
         this.easeVolume(this._volume, FADE_DURATION);
         this._pipeline.set_state(Gst.State.PLAYING);

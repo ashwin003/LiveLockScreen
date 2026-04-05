@@ -345,8 +345,18 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
                 !row.active  
             );
         });
-
         debugGroup.add(disableColorRow);
+
+        let forceFullscreenRow = new Adw.SwitchRow({
+            title: 'Force fullscreen',
+            subtitle: 'Enable this if you experience video positioning issues',
+        });
+        window._settings.bind(
+            Keys.DEBUG_FORCE_FULLSCREEN, forceFullscreenRow,
+            'active', Gio.SettingsBindFlags.DEFAULT
+        );
+        debugGroup.add(forceFullscreenRow);
+
         return debugGroup;
     }
 

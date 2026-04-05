@@ -49,6 +49,7 @@ export default class PlayerMulti {
                 colorAccurate: this._colorAccurate,
             });
             this._pipeline.init();
+            this._pipeline.preroll();
 
             this._initStyle();
             this._initWindows();
@@ -108,11 +109,17 @@ export default class PlayerMulti {
             throw new Error('No monitors found');
 
         for (let i = 0; i < monitorCount; i++) {
-            const window = new Gtk.ApplicationWindow({
-                application: this._app,
-                title: 'Video Player',
-            });
+            const gdkMonitor = gdkMonitors.get_item(i);
+            const connector = gdkMonitor.get_connector();
+            const geo = gdkMonitor?.get_geometry();
 
+            print(`Monitor ${i} connector: ${connector}`);
+
+            const window = new Gtk.Window({
+                application: this._app,
+                title: `LLS-Player-${connector}`,
+            });
+            
             const picture = new Gtk.Picture({
                 paintable,
                 content_fit: scaling,
@@ -124,12 +131,19 @@ export default class PlayerMulti {
             window.set_child(picture);
             window.set_decorated(false);
 
+            try { window.set_modal(false); } catch (_) {}
+            try { window.set_startup_id(''); } catch (_) {}
+            try { window.set_can_target(false); } catch (_) {}
+            try { window.set_focusable(false); } catch (_) {}
+
+            if (geo) {
+                window.set_default_size(geo.width, geo.height);
+                window.set_size_request(geo.width, geo.height);
+            }
+
             window.connect('realize', () => {
                 window.get_surface()?.set_opaque_region(null);
-                // Letting the extension handle this
-                // window.fullscreen_on_monitor(gdkMonitors.get_item(i));
             });
-
             window.present();
         }
     }
