@@ -7,6 +7,7 @@ import { isGtk4PaintableSinkAvailable } from './utils/check_dependencies.js';
 import { Keys } from "./enums.js";
 
 
+//TODO: Split into separate classes
 export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         window._settings = this.getSettings();
@@ -20,6 +21,7 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         page.add(this._buildGeneralGroup(window))
         page.add(this._buildAppearanceGroup(window))
         page.add(this._buildPromptGroup(window))
+        page.add(this._buildDebugGroup(window))
 
         window.add(page);
     }
@@ -323,6 +325,29 @@ export default class LiveLockscreenExtensionPrefs extends ExtensionPreferences {
         changeBlurSwitch.connect('notify::active', toggleBlurRows);
 
         return promptGroup;
+    }
+
+    _buildDebugGroup(window) {
+        let debugGroup = new Adw.PreferencesGroup({
+            title: 'Debug',
+        });
+
+        let disableColorRow = new Adw.SwitchRow({
+            title: 'Disable color conversion',
+            subtitle: 'Enabling this might improve performance but will cause color inaccuracy',
+        });
+        disableColorRow.active = !window._settings.get_boolean(Keys.DEBUG_USE_COLOR_ACCURATE);
+        disableColorRow.connect('notify::active', (row) => {
+            // Inverting the value so:
+            // disable color conversion -> use_color_accurate = false
+            window._settings.set_boolean(
+                Keys.DEBUG_USE_COLOR_ACCURATE,
+                !row.active  
+            );
+        });
+
+        debugGroup.add(disableColorRow);
+        return debugGroup;
     }
 
     _buildPathRow(window) {

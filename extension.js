@@ -55,6 +55,7 @@ export default class LockscreenExtension extends Extension {
         const loop = this._settings.get_boolean(Keys.LOOPED);
         const useVideorate = this._settings.get_boolean(Keys.USE_VIDEORATE);
         const framerate = this._settings.get_int(Keys.FRAMERATE);
+        const colorAccurate = this._settings.get_boolean(Keys.DEBUG_USE_COLOR_ACCURATE);
 
         this._promptSettings = {
             [Keys.PROMPT_PAUSE]:              this._settings.get_boolean(Keys.PROMPT_PAUSE),
@@ -82,6 +83,7 @@ export default class LockscreenExtension extends Extension {
             volume,
             useVideorate,
             framerate,
+            colorAccurate: colorAccurate
         });
         
         try {

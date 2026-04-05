@@ -7,13 +7,17 @@ import { ScalingMode } from "../enums.js";
 import CommandHandler from "./command_handler.js";
 
 export default class PlayerMulti {
-    constructor({ path, scalingMode, loop, volume, useVideorate, framerate }) {
+    constructor({ 
+        path, scalingMode, loop, volume, 
+        useVideorate, framerate, colorAccurate=true 
+    }) {
         this._path = path;
         this._scalingMode = scalingMode;
         this._loop = loop;
         this._volume = volume;
         this._useVideorate = useVideorate;
         this._framerate = framerate;
+        this._colorAccurate = colorAccurate;
 
         this._pipeline = null;
         this._commands = null;
@@ -42,6 +46,7 @@ export default class PlayerMulti {
                 loop: this._loop,
                 useVideorate: this._useVideorate,
                 framerate: this._framerate,
+                colorAccurate: this._colorAccurate,
             });
             this._pipeline.init();
 

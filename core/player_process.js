@@ -4,7 +4,10 @@ import GLib from 'gi://GLib';
 
 
 export class PlayerProcess {
-    constructor({ playerPath, videoPath, scalingMode, loop, volume, useVideorate = false, framerate }) {
+    constructor({ 
+        playerPath, videoPath, scalingMode, loop, volume, 
+        useVideorate = false, framerate, colorAccurate = true
+    }) {
         this._playerPath = playerPath;
         this._videoPath = videoPath;
         this._scalingMode = scalingMode;
@@ -12,6 +15,7 @@ export class PlayerProcess {
         this._volume = volume;
         this._useVideorate = useVideorate;
         this._framerate = framerate;
+        this._colorAccurate = colorAccurate;
 
         this._pid = null;
         this._stdin = null;
@@ -33,6 +37,7 @@ export class PlayerProcess {
                 String(this._volume),
                 String(this._useVideorate),
                 String(this._framerate),
+                String(this._colorAccurate),
             ],
             null,
             GLib.SpawnFlags.SEARCH_PATH,
