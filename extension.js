@@ -143,6 +143,20 @@ export default class LockscreenExtension extends Extension {
                 }
             );
 
+            //NOTE: Replacing TapAction with a fresh one if exists (for gnome 48 and older) 
+            const actions = Main.screenShield._dialog.get_actions();
+            const tapAction = actions.find(a => {
+                //HACK: Maybe not the most beautiful solution, but works
+                return a.constructor.name.includes('TapAction')
+            });
+            if (tapAction) {
+                Main.screenShield._dialog.remove_action(tapAction);
+                
+                let newAction = new Clutter.TapAction();
+                newAction.connect('tap', Main.screenShield._dialog._showPrompt.bind(Main.screenShield._dialog));
+                Main.screenShield._dialog.add_action(newAction);
+            }
+
             Main.screenShield._dialog._updateBackgrounds();
         }, (err) => {
             console.error(`Unable to intercept all windows: ${err}`);
