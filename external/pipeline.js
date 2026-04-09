@@ -6,7 +6,7 @@ const FADE_DURATION = 300
 
 export default class Pipeline {
     constructor({
-        path, volume, loop, useVideorate, framerate
+        path, volume, loop, useVideorate, framerate, colorAccurate=true
     }) {
         this._bus = null;
         this._pipeline = null;
@@ -19,6 +19,7 @@ export default class Pipeline {
         this._loop = loop;
         this._useVideorate = useVideorate;
         this._framerate = framerate;
+        this._colorAccurate = colorAccurate; 
     }
 
     init() {
@@ -28,7 +29,12 @@ export default class Pipeline {
 
         try {
             this._pipeline = Gst.ElementFactory.make('playbin', 'playbin');
-            this._initVideo();
+
+            if (this._colorAccurate)
+                this._initVideoColorAccurate();
+            else
+                this._initVideoSimple();
+            
             this._initAudio();
             this._initBusWatch();
 
@@ -41,7 +47,11 @@ export default class Pipeline {
         }
     }
 
-    _initVideo() {
+    _initVideoSimple() {
+        // Keeping this just in case users experience performance issues with
+        // new color accurate pipeline
+        console.log("Using simple video pipeline")
+
         if (this._useVideorate) {
             const videoSinkBin = Gst.parse_bin_from_description(
                 `videorate skip-to-first=true ! 
@@ -65,6 +75,47 @@ export default class Pipeline {
                 throw new Error('Failed to create gtk4paintablesink');
 
             this._pipeline.set_property('video-sink', this._videoSink);
+        }
+    }
+
+    _initVideoColorAccurate() {
+        // This pipeline utilizes gpu to add convertion to sRGB for accuracy
+        console.log("Using color accurate video pipeline")
+
+        if (this._useVideorate) {
+            const videoSinkBin = Gst.parse_bin_from_description(
+                `videorate skip-to-first=true ! \
+                video/x-raw,framerate=${this._framerate}/1 ! \
+                glupload ! glcolorconvert ! \
+                video/x-raw(memory:GLMemory),format=RGBA,colorimetry=sRGB ! \
+                gtk4paintablesink name=sink`,
+                true
+            );
+            if (!videoSinkBin)
+                throw new Error('Failed to create video sink bin');
+
+            this._videoSink = videoSinkBin.get_by_name('sink');
+
+            if (!this._videoSink)
+                throw new Error('Failed to find gtk4paintablesink in video sink bin');
+
+            this._pipeline.set_property('video-sink', videoSinkBin);
+        } else {
+            const videoSinkBin = Gst.parse_bin_from_description(
+                `glupload ! glcolorconvert ! \
+                video/x-raw(memory:GLMemory),format=RGBA,colorimetry=sRGB ! \
+                gtk4paintablesink name=sink`,
+                true
+            );
+            if (!videoSinkBin)
+                throw new Error('Failed to create video sink bin');
+
+            this._videoSink = videoSinkBin.get_by_name('sink');
+
+            if (!this._videoSink)
+                throw new Error('Failed to find gtk4paintablesink in video sink bin');
+
+            this._pipeline.set_property('video-sink', videoSinkBin);
         }
     }
 
@@ -149,6 +200,10 @@ export default class Pipeline {
         // But that seems to fix the issue
         this._volumeControl.set(startTime, safeStart / 10);
         this._volumeControl.set(endTime, safeTarget / 10);
+    }
+
+    preroll() {
+        this._pipeline.set_state(Gst.State.PAUSED);
     }
 
     play() {
